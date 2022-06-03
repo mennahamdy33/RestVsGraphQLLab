@@ -1,0 +1,23 @@
+lab1: REST API
+
+- Create API that conforms to REST architectural style for these models:
+    > Article (title, body, comments, date)
+        where comments field is an array of Comment (content, user, date)
+    > User (firstname, lastname, email, dob, isSuspended boolean)
+
+- Add route to read/list all articles
+- Add route to read/list all users
+- Add route to read a specific user, article (by id)
+- Add route to read/list a specific article's comments
+- Add route to read/list a specific article's authors
+- Add route to read/list a specific user's articles
+
+- Add routes to create, update, delete an article
+- Add routes to create, update, delete a comment
+
+
+- Add route to suspend a user (isSuspended: true)
+- Add route to unsuspend a user (isSuspended: false)
+
+- use HATEOAS
+    - self document
