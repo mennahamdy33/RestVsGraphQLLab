@@ -1,38 +1,10 @@
 const { ApolloServer, gql } = require('apollo-server');
+require('../helpers/dbConnection');
+const {  Article } = require('../models');
 
-
-
-let users = [
-    { id: 1, firstname: 'ahmed',lastname: 'ahmed',
-     email:'sadasd',isSuspended:true,dob:'11-2-2010' },
-     { id: 2, firstname: 'mohamed',lastname: 'ahmed',
-     email:'sadasd',isSuspended:true,dob:'11-2-2010' },
-     { id: 3, firstname: 'mostafa',lastname: 'ahmed',
-     email:'sadasd',isSuspended:true,dob:'11-2-2010' }
-  
-];
-let comments = [
-    {  content: "this is a comment",
-        user:users[1],
-        date: '12-2-2010' },
-   
-  
-];
-let articles = [
-    { id: 1, title: 'article1',
-    body:'sadasd fdsf edad',date:'11-2-2010',
-    author:users[0],comments:[comments[0]] },
-    { id: 2, title: 'article2',
-    body:'sadasd fdsf edad',date:'11-2-2010',
-    author:users[0],comments:[comments[0]] },
-    { id: 3, title: 'article3',
-    body:'sadasd fdsf edad',date:'11-2-2010',
-    author:users[0],comments:[comments[0]] }
-   
-];
 const schema = `
 type User {
-    id: ID!
+    _id: ID!
     firstname: String!
     lastname: String!
     email: String
@@ -40,18 +12,18 @@ type User {
     isSuspended: Boolean
 }
 type Comment {
+    _id: ID!
     content: String
     user:User
     date: String
 }
 
 type Article {
-    id: ID!
+    _id: ID!
     title: String!
     body: String
     date: String
-  
-    author: User!
+    author: [User]!
     comments: [Comment]
     }
 
@@ -63,10 +35,13 @@ type Article {
     }
 
     type Mutation {
-        deleteArticle (id: Int): [Article]
-    createArticle(id: Int, title: String,
+        deleteArticle (id: String): String
+    createArticle( title: String,
     body:String,
-    author:Int): [Article]
+    date:String,
+    author:String,
+    
+    ): [Article]
         
      }
 `
@@ -75,28 +50,58 @@ const typeDefs = gql(schema);
 
 const resolvers = {
     Query: {
-        allArticles: (_, { last }) => {
+        allArticles: async(_, { last }) => {
+         const length =   await  Article.count();
+       const articles=await     Article.aggregate([
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "author",
+                        foreignField: "_id",
+                        as: "author"
+                    }
+                },
+               
+            ]).skip(last?length-last:0);
            
-            if (!last) return articles;
-            if (last) return articles.slice(articles.length-last);
+            return articles;
+            
         },
       
     },
     Mutation: {
-        deleteArticle: (_, { id }) => {
-            articles = articles.filter((article) => article.id !== id);
-            return articles;
-        },
-        createArticle: (_, { id,  title,
-            body,
-            author }) => {
-            articles.push({id,
-                title,
-                body,
-                author: users.filter((user) => user.id === author)[0],
-                });
-            return articles;
+        deleteArticle:async (_, { id }) => {
+            await Article.findByIdAndDelete(id);
+            return "done"
             
+        },
+        createArticle: async (_, {   title,
+            body,
+            author,
+            date,
+           
+        }) => {
+
+         
+            
+            try {
+                const d = new Date(date);
+                console.log(d, typeof d)
+                const { _id: articleId } = await Article.create(
+                    { author,
+                         title,
+                          body,
+                          date:d,
+                          comments:[]}
+                );
+                console.log(articleId)
+        
+        
+            } catch (err) {
+                console.log(err);
+            }
+         
+
         }
     }
 }
